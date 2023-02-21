@@ -1,0 +1,3 @@
+[submodule "flops-counter.pytorch"]
+	path = flops-counter.pytorch
+	url = git@github.com:sovrasov/flops-counter.pytorch.git

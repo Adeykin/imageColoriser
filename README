@@ -1,0 +1,26 @@
+datasets:
+    DIV2K - djr super resolution
+    WiderFace
+
+
+upsampling:
+    - bilinear
+    - ConvTranspose3d
+    - sub-pixel convolution with ICNR initialisation
+
+Ideas:
+    - ResNet as encoder (pretrained). fastis generages decoder.
+        - Freeze encoder and the first time
+    - SuggleNet updampling
+    ? feature loss ?s
+
+networks:
+    UNet
+
+    epoch3: loss = 27891520.551757812
+    epoch5: loss = 27679750.163085938
+    
+    
+Coloriser:
+    - Save visalisations
+    - Try ResNet as backbone
