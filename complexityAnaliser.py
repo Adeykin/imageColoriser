@@ -11,8 +11,13 @@ inputSize = 224
 
 #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 #net = UNet(n_channels=1, n_classes=2, bilinear=True)
-body = create_body(torchvision.models.resnet.resnet18(), pretrained=True, n_in=1, cut=-2)
-net = DynamicUnet(body, 2, (inputSize, inputSize))
+#body = create_body(torchvision.models.resnet.resnet18(), pretrained=True, n_in=1, cut=-2)
+#net = DynamicUnet(body, 2, (inputSize, inputSize))
+
+bodyD = create_body(torchvision.models.resnet.resnet18(), pretrained=True, n_in=1, cut=-1)
+bodyD = torch.nn.Sequential(bodyD, torch.nn.Conv2d(512, 2, kernel_size=1), torch.nn.Softmax(dim=1))
+
+net = torchvision.models.resnet.resnet18()
 
 #net.load_state_dict(torch.load('model_9.tar.gz', map_location=device))
 

@@ -10,7 +10,8 @@ import torchvision
 
 from UNet.unet import UNet
 
-inputSize = 224 #TODO make it one
+inputSize = 224
+modelName = 'model_G_unet_OVERFITcow'
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -18,15 +19,17 @@ net = UNet(n_channels=1, n_classes=2, bilinear=True)
 #body = create_body(torchvision.models.resnet.resnet18(), pretrained=False, n_in=1, cut=-2)
 #net = DynamicUnet(body, 2, (inputSize, inputSize))
 
-net.load_state_dict(torch.load('model_L1_unet_OVERFITcow.tar.gz', map_location=device))
+resnet = torchvision.models.resnet.resnet18()
 
-outputPath = 'output_model_L1_unet_OVERFITcow'
+net.load_state_dict(torch.load('models/' + modelName + '.tar.gz', map_location=device))
+
+outputPath = 'outputs/' + modelName
 if not os.path.exists(outputPath):
     os.mkdir(outputPath)
 
 datasetSize = 32
 #widerFaceLoader = dataloader.WiderFaceLoader('/home/adeykin/projects/visionlabs/WIDER_val/images', phase='test')
-widerFaceLoader = dataloader.WiderFaceLoader('coco/coco_cow', phase='test')
+widerFaceLoader = dataloader.WiderFaceLoader('datasets/coco/coco_cow', phase='test')
 dataSubset = torch.utils.data.Subset(widerFaceLoader, range(datasetSize))
 
 for data,target,img,path in dataSubset:

@@ -39,6 +39,16 @@ for epoch in range(epochsNumber):
 
         lossD = gan.trainD(I, ab)
         lossG = gan.trainG(I, ab)
-        print("{} {}".format(lossD, lossG))
+        print("Train {} {}".format(lossD, lossG))
+
+    netG.eval()
+    netD.eval()
+    for I, ab in train_loader:
+        I = I.to(device=device)  #TODO: move it to dataloader
+        ab = ab.to(device=device)
+
+        lossD = gan.testD(I, ab)
+        lossG = gan.testG(I, ab)
+        print("Test {} {}".format(lossD, lossG))
     #print('Epoch {}: loss={}'.format(epoch, epochLoss))
 
