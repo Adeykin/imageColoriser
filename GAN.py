@@ -9,14 +9,15 @@ def normalise(x):
 
 def visualise(I, ab, index):
     I = denorm(I).type(torch.uint8)
-    ab = ab.clip(0, 255).type(torch.uint8)#.transpose([1, 2, 0])
+    #ab = ab.clip(0, 255).type(torch.uint8)
+    ab = denorm(ab).type(torch.uint8)
     img = torch.cat((I, ab), dim=1)[index,:]
     img  = img.detach().cpu().numpy().transpose([1, 2, 0])
-    imgRgb = cv2.cvtColor(img, cv2.COLOR_Lab2BGR)
+    imgRgb = cv2.cvtColor(img, cv2.COLOR_Lab2RGB)
     return imgRgb
 
 class GAN:
-    def __init__(self, netG, netD, device, lrG=1e-3, lrD=1e-3):
+    def __init__(self, netG, netD, device, lrG=1e-3, lrD=1e-3, patchLoss=False):
         self.netG = netG
         self.netD = netD
         self.optimizerG = torch.optim.Adam(netG.parameters(), lr=lrG)
@@ -25,14 +26,20 @@ class GAN:
         self.criterium2 = torch.nn.BCELoss()
         #self.criterium3 = torch.nn.BCEWithLogitsLoss()
         self.device = device
+        self.patchLoss = patchLoss
 
     def trainG(self, I, abTarget):
         self.optimizerG.zero_grad()
         abActual = self.netG(I)
 
-        y = self.netD(torch.cat((I, normalise(abActual)), axis=1))
+        y = self.netD(torch.cat((I, abActual), axis=1))
         ones = torch.tensor([1,]*y.shape[0], dtype=torch.int64, device=self.device)
-        loss = self.criterium2(y[:,0,0,0], ones.type(torch.float32))
+        if self.patchLoss:
+            target = torch.dstack([ones, ] * y.shape[1])[0, :]
+            loss = self.criterium2(y, target.type(torch.float32))
+        else:
+            loss = self.criterium2(y[:,0,0,0], ones.type(torch.float32))
+
         loss.backward()
         self.optimizerG.step()
         return loss.item()
@@ -41,9 +48,14 @@ class GAN:
         with torch.no_grad():
             abActual = self.netG(I)
 
-            y = self.netD(torch.cat((I, normalise(abActual)), axis=1))
+            y = self.netD(torch.cat((I, abActual), axis=1))
             ones = torch.tensor([1, ] * y.shape[0], dtype=torch.int64, device=self.device)
-            loss = self.criterium2(y[:, 0, 0, 0], ones.type(torch.float32))
+            if self.patchLoss:
+                target = torch.dstack([ones, ] * y.shape[1])[0, :]
+                loss = self.criterium2(y, target.type(torch.float32))
+            else:
+                loss = self.criterium2(y[:,0,0,0], ones.type(torch.float32))
+
             return loss.item()
 
     def trainD(self, I, ab):
@@ -59,8 +71,13 @@ class GAN:
 
         ab = torch.cat((ab_true, ab_false), axis=0)
         target = torch.tensor( [1,]*halfSize + [0,]*halfSize, dtype=torch.int64, device=self.device)
-        actual = self.netD(torch.cat((I, normalise(ab)), axis=1))
-        loss = self.criterium2(actual[:,0,0,0], target.type(torch.float32))
+        actual = self.netD(torch.cat((I, ab), axis=1))
+        if self.patchLoss:
+            target = torch.dstack([target, ] * actual.shape[1])[0, :]
+            loss = self.criterium2(actual, target.type(torch.float32))
+        else:
+            loss = self.criterium2(actual[:,0,0,0], target.type(torch.float32))
+
         loss.backward()
         self.optimizerD.step()
         return loss.item()
@@ -77,7 +94,11 @@ class GAN:
 
             ab = torch.cat((ab_true, ab_false), axis=0)
             target = torch.tensor( [1,]*halfSize + [0,]*halfSize, dtype=torch.int64, device=self.device)
-            actual = self.netD(torch.cat((I, normalise(ab)), axis=1))
-            #loss = self.criterium(actual[:,:,0,0], target)
-            loss = self.criterium2(actual[:, 0, 0, 0], target.type(torch.float32))
+            actual = self.netD(torch.cat((I, ab), axis=1))
+            if self.patchLoss:
+                target = torch.dstack([target, ] * actual.shape[1])[0, :]
+                loss = self.criterium2(actual, target.type(torch.float32))
+            else:
+                loss = self.criterium2(actual[:,0,0,0], target.type(torch.float32))
+
             return loss.item()

@@ -6,7 +6,6 @@ import numpy as np
 def augResize(img, inputSize):
     minSide = min(img.shape[:2])
     scaleFactor = minSide / inputSize
-    #targetSize = int(np.ceil(img.shape[1]/scaleFactor)), int(np.ceil(img.shape[0]/scaleFactor))
     targetSize = np.ceil(np.array(img.shape[:2])/scaleFactor).astype(int)[::-1]
     img = cv2.resize(img, targetSize)
     return img
@@ -40,13 +39,14 @@ class WiderFaceLoader:
         #   Resize to 224 by min side
         #   ~Crop with random slide
         path = self.filePathes[index]
-        img = cv2.imread(path)
+        img = cv2.imread(path)[:,:,::-1]
         img = augResize(img, self.inputSize)
         img = augCrop(img, self.inputSize)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2Lab)
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2Lab)
         X = img[:,:,0][:,:,None]
         Y = img[:,:,1:].astype('float32')
         X = augNormalise(X)
+        Y = augNormalise(Y)
 
         if self.phase == 'train':
             return torch.from_numpy(X).permute(2, 0, 1), torch.from_numpy(Y).permute(2, 0, 1)

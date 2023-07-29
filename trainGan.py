@@ -1,17 +1,19 @@
 import torch
 import dataloader
 
-from UNet.unet import UNet, UNetHalf, PatchDiscriminator
+from UNet.unet import UNet, UNet2, UNetHalf, UNet2Half, PatchDiscriminator
 import GAN
 
 inputSize = 64
 epochsNumber = 5
-batchSize = 4
+batchSize = 6
 learningRateG = 1e-5
 learningRateD = 1e-5
 
-netG = UNet(n_channels=1, n_classes=2, bilinear=True)
-netD = UNetHalf(n_channels=3, n_classes=2, bilinear=True, inputSize=inputSize)
+#netG = UNet2(n_channels=1, n_classes=2)
+#netD = UNet2Half(n_channels=3, n_classes=2)
+netG = UNet(n_channels=1, n_classes=2)
+netD = UNetHalf(n_channels=3, n_classes=2)
 
 datasetSize = batchSize
 widerFaceLoader = dataloader.WiderFaceLoader('/home/adeykin/projects/visionlabs/WIDER_val/images', phase='train', size=inputSize)
@@ -27,7 +29,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 netG.to(device=device)
 netD.to(device=device)
 
-gan = GAN.GAN(netG, netD, device, lrG=learningRateG, lrD=learningRateD)
+gan = GAN.GAN(netG, netD, device, lrG=learningRateG, lrD=learningRateD, patchLoss=False)
 
 for epoch in range(epochsNumber):
     netG.train()
