@@ -28,17 +28,21 @@ class GAN:
         self.device = device
         self.patchLoss = patchLoss
 
+    def loss(self, y, target):
+        if self.patchLoss:
+            target = torch.dstack([target, ] * y.shape[1])[0, :]
+            loss = self.criterium2(y, target.type(torch.float32))
+        else:
+            loss = self.criterium2(y[:,0,0,0], target.type(torch.float32))
+        return loss
+
     def trainG(self, I, abTarget):
         self.optimizerG.zero_grad()
         abActual = self.netG(I)
 
         y = self.netD(torch.cat((I, abActual), axis=1))
         ones = torch.tensor([1,]*y.shape[0], dtype=torch.int64, device=self.device)
-        if self.patchLoss:
-            target = torch.dstack([ones, ] * y.shape[1])[0, :]
-            loss = self.criterium2(y, target.type(torch.float32))
-        else:
-            loss = self.criterium2(y[:,0,0,0], ones.type(torch.float32))
+        loss = self.loss(y, ones)
 
         loss.backward()
         self.optimizerG.step()
@@ -50,35 +54,28 @@ class GAN:
 
             y = self.netD(torch.cat((I, abActual), axis=1))
             ones = torch.tensor([1, ] * y.shape[0], dtype=torch.int64, device=self.device)
-            if self.patchLoss:
-                target = torch.dstack([ones, ] * y.shape[1])[0, :]
-                loss = self.criterium2(y, target.type(torch.float32))
-            else:
-                loss = self.criterium2(y[:,0,0,0], ones.type(torch.float32))
+            loss = self.loss(y, ones)
 
             return loss.item()
 
     def trainD(self, I, ab):
         batchSize = I.shape[0]
-        halfSize = batchSize//2
-        assert (batchSize % 2 == 0)
 
+        #Train for Real
         self.optimizerD.zero_grad()
-        #I_true = I[:halfSize, :]
-        ab_true = ab[:halfSize, :]
-        I_false = I[halfSize:, :]
-        ab_false = self.netG(I_false)
 
-        ab = torch.cat((ab_true, ab_false), axis=0)
-        target = torch.tensor( [1,]*halfSize + [0,]*halfSize, dtype=torch.int64, device=self.device)
+        target = torch.tensor( [1,]*batchSize, dtype=torch.int64, device=self.device)
         actual = self.netD(torch.cat((I, ab), axis=1))
-        if self.patchLoss:
-            target = torch.dstack([target, ] * actual.shape[1])[0, :]
-            loss = self.criterium2(actual, target.type(torch.float32))
-        else:
-            loss = self.criterium2(actual[:,0,0,0], target.type(torch.float32))
-
+        loss = self.loss(actual, target)
         loss.backward()
+
+        #Train for Fake
+        ab_fake = self.netG(I)
+        target = torch.tensor([0, ] * batchSize, dtype=torch.int64, device=self.device)
+        actual = self.netD(torch.cat((I, ab_fake), axis=1))
+        loss = self.loss(actual, target)
+        loss.backward()
+
         self.optimizerD.step()
         return loss.item()
 
@@ -95,10 +92,6 @@ class GAN:
             ab = torch.cat((ab_true, ab_false), axis=0)
             target = torch.tensor( [1,]*halfSize + [0,]*halfSize, dtype=torch.int64, device=self.device)
             actual = self.netD(torch.cat((I, ab), axis=1))
-            if self.patchLoss:
-                target = torch.dstack([target, ] * actual.shape[1])[0, :]
-                loss = self.criterium2(actual, target.type(torch.float32))
-            else:
-                loss = self.criterium2(actual[:,0,0,0], target.type(torch.float32))
+            loss = self.loss(actual, target)
 
             return loss.item()
