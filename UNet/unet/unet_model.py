@@ -102,16 +102,16 @@ class UNet2(nn.Module):
         bilinear = False
 
         self.inc = DoubleConv(n_channels, 64)
-        self.down1 = DownNoPool(64, 128)
-        self.down2 = DownNoPool(128, 256)
-        self.down3 = DownNoPool(256, 512)
+        self.down1 = DownNoPool(64, 128, nn.LeakyReLU())
+        self.down2 = DownNoPool(128, 256, nn.LeakyReLU())
+        self.down3 = DownNoPool(256, 512, nn.LeakyReLU())
         factor = 2 if bilinear else 1
-        self.down4 = DownNoPool(512, 1024 // factor)
+        self.down4 = DownNoPool(512, 1024 // factor, nn.LeakyReLU())
         #self.down5 = Down(1024 // factor, 1024 // factor)
-        self.up1 = Up(1024, 512 // factor, bilinear)
-        self.up2 = Up(512, 256 // factor, bilinear)
-        self.up3 = Up(256, 128 // factor, bilinear)
-        self.up4 = Up(128, 64, bilinear)
+        self.up1 = Up(1024, 512 // factor, bilinear, nn.ReLU())
+        self.up2 = Up(512, 256 // factor, bilinear, nn.ReLU())
+        self.up3 = Up(256, 128 // factor, bilinear, nn.ReLU())
+        self.up4 = Up(128, 64, bilinear, nn.ReLU())
         #self.outc = OutConv(64, n_classes) # Remove this FC layer
         self.outc = nn.Conv2d(64, n_classes, kernel_size=3, padding=1, bias=False)
         self.tanh = torch.nn.Tanh()

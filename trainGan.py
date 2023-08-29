@@ -5,8 +5,8 @@ from UNet.unet import UNet, UNet2, UNetHalf, UNet2Half, PatchDiscriminator
 import GAN
 
 inputSize = 64
-epochsNumber = 5
-batchSize = 6
+epochsNumber = 20
+batchSize = 8
 learningRateG = 1e-5
 learningRateD = 1e-5
 
