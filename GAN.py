@@ -20,7 +20,7 @@ class GAN:
     def __init__(self, netG, netD, device, lrG=1e-3, lrD=1e-3, patchLoss=False):
         self.netG = netG
         self.netD = netD
-        self.optimizerG = torch.optim.Adam(netG.parameters(), lr=lrG)
+        self.optimizerG = torch.optim.Adam(netG.parameters(), lr=lrG) #TODO: set beta1=0.5
         self.optimizerD = torch.optim.Adam(netD.parameters(), lr=lrD)
         #self.criterium = torch.nn.CrossEntropyLoss()
         self.criterium2 = torch.nn.BCELoss()
@@ -95,3 +95,4 @@ class GAN:
             loss = self.loss(actual, target)
 
             return loss.item()
+

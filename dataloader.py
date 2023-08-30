@@ -27,19 +27,21 @@ def recursiveReader(path):
             files.append(fullPath)
     return files
 
-class WiderFaceLoader:
-    def __init__(self, path, phase='train', size=224):
-        self.filePathes = recursiveReader(path)
+class COCOLoader:
+    def __init__(self, path, phase='train', size=224, device= torch.device('cpu')):
+        self.path = path
+        listFile = path + ('/coco_zoo_256_train.txt' if phase == 'train' else '/coco_zoo_159_test.txt')
+        self.images = [x.strip('\n') for x in open(listFile, 'r').readlines()]
         self.phase = phase
         self.inputSize = size
-        print("Read {} images".format(len(self.filePathes)))
+        self.device = device
+        print("Read {} images".format(len(self.images)))
 
     def __getitem__(self, index):
         #Augmentation:
         #   Resize to 224 by min side
         #   ~Crop with random slide
-        path = self.filePathes[index]
-        img = cv2.imread(path)[:,:,::-1]
+        img = cv2.imread(self.path + '/' + self.images[index])[:,:,::-1]
         img = augResize(img, self.inputSize)
         img = augCrop(img, self.inputSize)
         img = cv2.cvtColor(img, cv2.COLOR_RGB2Lab)
@@ -49,20 +51,24 @@ class WiderFaceLoader:
         Y = augNormalise(Y)
 
         if self.phase == 'train':
-            return torch.from_numpy(X).permute(2, 0, 1), torch.from_numpy(Y).permute(2, 0, 1)
+            return torch.from_numpy(X).permute(2, 0, 1).to(device=self.device), \
+                   torch.from_numpy(Y).permute(2, 0, 1).to(device=self.device)
         else:
-            return torch.from_numpy(X).permute(2, 0, 1), torch.from_numpy(Y).permute(2, 0, 1), img, self.filePathes[index]
+            return torch.from_numpy(X).permute(2, 0, 1).to(device=self.device), \
+                   torch.from_numpy(Y).permute(2, 0, 1).to(device=self.device), \
+                   img, \
+                   self.filePathes[index]
 
     def __len__(self):
-        return len(self.filePathes)
+        return len(self.images)
 
 
 if __name__ == '__main__':
-    widerFaceLoader = WiderFaceLoader('/home/adeykin/projects/visionlabs/WIDER_val/images')
+    cocoLoader = COCOLoader('/home/adeykin/projects/visionlabs/WIDER_val/images')
     print('hello')
 
     train_loader = torch.utils.data.DataLoader(
-        widerFaceLoader,
+        cocoLoader,
         batch_size=8,
         shuffle=True,
         pin_memory=True,  # ???
@@ -72,7 +78,7 @@ if __name__ == '__main__':
     for a in train_loader:
         print('a')
 
-    img = widerFaceLoader[0]
+    img = cocoLoader[0]
 
     img = cv2.imread('/home/adeykin/projects/visionlabs/WIDER_val/images/46--Jockey/46_Jockey_Jockey_46_823.jpg')
     img = augResize(img)
