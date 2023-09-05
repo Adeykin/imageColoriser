@@ -1,5 +1,6 @@
 import torch
 import cv2
+import numpy as np
 
 def denorm(x):
     return (x+1)*127
@@ -15,6 +16,19 @@ def visualise(I, ab, index):
     img  = img.detach().cpu().numpy().transpose([1, 2, 0])
     imgRgb = cv2.cvtColor(img, cv2.COLOR_Lab2RGB)
     return imgRgb
+
+def visualise(I, ab):
+    images = []
+    I = denorm(I).type(torch.uint8)
+    ab = denorm(ab).type(torch.uint8)
+    img = torch.cat((I, ab), dim=1)
+    for i in range(5):
+        imgPart = img[i,:]
+        imgPart  = imgPart.detach().cpu().numpy().transpose([1, 2, 0])
+        imgRgb = cv2.cvtColor(imgPart, cv2.COLOR_Lab2RGB)
+        images.append(imgRgb)
+    finalImage = np.concatenate(images, axis=1)
+    return finalImage
 
 class GAN:
     def __init__(self, netG, netD, device, lrG=1e-3, lrD=1e-3, patchLoss=False):
