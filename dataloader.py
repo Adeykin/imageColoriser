@@ -2,7 +2,8 @@ import torch
 import cv2
 import os
 import numpy as np
-
+import transform
+from torchvision import transforms
 
 def augResize(img, inputSize):
     minSide = min(img.shape[:2])
@@ -33,7 +34,7 @@ def recursiveReader(path):
 
 
 class COCOLoader:
-    def __init__(self, path, phase='train', size=224, device=torch.device('cpu')):
+    def __init__(self, path, transform, phase='train', size=224, device=torch.device('cpu')):
         # self.path = path
         if os.path.isfile(path):
             listFile = path
@@ -44,6 +45,7 @@ class COCOLoader:
         else:
             print('[COCOLoader] error')
             quit()
+        self.transform = transform
 
         self.images = [x.strip('\n') for x in open(listFile, 'r').readlines()]
         self.phase = phase
@@ -52,33 +54,28 @@ class COCOLoader:
         print("Read {} images".format(len(self.images)))
 
     def __getitem__(self, index):
-        # Augmentation:
-        #   Resize to 224 by min side
-        #   ~Crop with random slide
         img = cv2.imread(self.path + '/' + self.images[index])[:, :, ::-1]
-        img = augResize(img, self.inputSize)
-        img = augCrop(img, self.inputSize)
-        img = cv2.cvtColor(img, cv2.COLOR_RGB2Lab)
-        X = img[:, :, 0][:, :, None]
-        Y = img[:, :, 1:].astype('float32')
-        X = augNormalise(X)
-        Y = augNormalise(Y)
+        tensor = self.transform(img).to(device=self.device)
 
         if self.phase == 'train':
-            return torch.from_numpy(X).permute(2, 0, 1).to(device=self.device), \
-                   torch.from_numpy(Y).permute(2, 0, 1).to(device=self.device)
+            return tensor[0,:,:], tensor[1:,:,:]
         else:
-            return torch.from_numpy(X).permute(2, 0, 1).to(device=self.device), \
-                   torch.from_numpy(Y).permute(2, 0, 1).to(device=self.device), \
-                   img, \
-                   self.path + '/' + self.images[index]
+            return tensor[0, :, :], tensor[1:, :, :], img, self.path + '/' + self.images[index]
 
     def __len__(self):
         return len(self.images)
 
 
 if __name__ == '__main__':
-    cocoLoader = COCOLoader('/home/adeykin/projects/visionlabs/WIDER_val/images')
+    image_transform = transforms.Compose([
+        transform.RandomResizeMinSide(224,224),
+        transform.EdgeCrop(224),
+        transform.Lab(),
+        transforms.ToTensor(),
+        transforms.Normalize(127,127)
+    ])
+
+    cocoLoader = COCOLoader('/home/adeykin/projects/coloriser/coloriser_own/datasets/coco/coco_zoo', image_transform)
     print('hello')
 
     train_loader = torch.utils.data.DataLoader(
